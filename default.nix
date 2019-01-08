@@ -122,22 +122,14 @@ in rec {
           awk -v prefix="$rel" -v root="$1" -v top="$(test -z "$rel" && echo 1)" "
             BEGIN { print \"# \"root }
 
-            /^!?[^\\/]+\/?$/ {
-              match(\$0, /^!?/, negation)
-              sub(/^!?/, \"\")
-
+            /^[^\/]/ {
               if (top) { middle = \"\" } else { middle = \"**/\" }
-
-              print negation[0] prefix middle \$0
+              print prefix middle \$0
             }
 
-            /^!?(\\/|.*\\/.+$)/ {
-              match(\$0, /^!?/, negation)
-              sub(/^!?/, \"\")
-
+            /^\// {
               if (!top) sub(/^\//, \"\")
-
-              print negation[0] prefix \$0
+              print prefix\$0
             }
 
             END { print \"\" }

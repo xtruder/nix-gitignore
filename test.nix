@@ -35,7 +35,7 @@ let
         touches 1-xxxxx/1-simpl  {1,2}
         touch {,1-simpl/}char-class-pathalogic
 
-        touches 2-negation       {.keep,10,20,30,40,50,60,70}
+        touches 2-negation       {.keep,10,20,30,40,50}
 
         touches 3-wildcards      {foo,bar,bbar,baz}.html
         touches 3-wildcards/html {foo,bar,bbar,baz}.html
@@ -70,7 +70,6 @@ let
     2-*/[^.]*
     !2-*/1?
     !2-*/30
-    !/2-*/70
     !/40
     !50
 
