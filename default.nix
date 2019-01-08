@@ -1,4 +1,4 @@
-{ lib, runCommand }:
+{ lib }:
 
 # An interesting bit from the gitignore(5):
 # - A slash followed by two consecutive asterisks then a slash matches
@@ -102,43 +102,8 @@ in rec {
     gitignoreFilter (gitignoreCompileIgnore patterns root) root name type
     && filter name type;
 
-  # This is a very hacky way of programming this!
-  # A better way would be to reuse existing filtering by making multiple gitignore functions per each root.
-  # Then for each file find the set of roots with gitignores (and functions).
-  # This would make gitignoreFilterSource very different from gitignoreFilterPure.
-  # rootPath → gitignoresConcatenated
-  compileRecursiveGitignore = root:
-    let
-      dirOrIgnore = file: type: baseNameOf file == ".gitignore" || type == "directory";
-      ignores = builtins.filterSource dirOrIgnore root;
-    in readFile (
-      runCommand "${baseNameOf root}-recursive-gitignore" {} ''
-        cd ${ignores}
-
-        find -type f -exec sh -c '
-          rel="$(realpath --relative-to=. "$(dirname "$1")")/"
-          if [ "$rel" = "./" ]; then rel=""; fi
-
-          awk -v prefix="$rel" -v root="$1" -v top="$(test -z "$rel" && echo 1)" "
-            BEGIN { print \"# \"root }
-
-            /^[^\/]/ {
-              if (top) { middle = \"\" } else { middle = \"**/\" }
-              print prefix middle \$0
-            }
-
-            /^\// {
-              if (!top) sub(/^\//, \"\")
-              print prefix\$0
-            }
-
-            END { print \"\" }
-          " "$1"
-        ' sh {} \; > $out
-      '');
-
-  withGitignoreFile = patterns: root:
-    lib.toList patterns ++ [(compileRecursiveGitignore root)];
+  withGitignoreFile = aux: root:
+    lib.toList aux ++ [(root + "/.gitignore")];
 
   # filterSource derivatives
 

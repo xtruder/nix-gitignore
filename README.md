@@ -33,12 +33,12 @@ in this snippet:
 with (import <nixpkgs> {});
 
 let
-  gitignore = callPackage (pkgs.fetchFromGitHub {
+  gitignore = import (pkgs.fetchFromGitHub {
     owner = "siers";
     repo = "nix-gitignore";
     rev = "…";
     sha256 = "…";
-  }) {};
+  }) { inherit lib; };
 in
   with gitignore;
 
