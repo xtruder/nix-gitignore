@@ -44,6 +44,13 @@ let
 
         touches 5-directory      {1,2,3,4,5,^,$,^$,$^,[,[[,],]],]]],ab,bb,\\,\\\\}
 
+        touches 6-recursive      a b xbx c
+        touches 6-recursive/dir  a b xbx c
+
+        touches 6-recursive/1-simpl          {1,2,3,4,5,^,$,^$,$^,[,[[,],]],]]],ab,bb,\\,\\\\,simple-test}
+        touches 6-recursive/1-simpl/1-simpl  {1,2,3,4,5,^,$,^$,$^,[,[[,],]],]]],ab,bb,\\,\\\\}
+        touches 6-recursive/1-xxxxx/1-simpl  {1,2}
+
         touches 9-expected       {unfiltered,filtered-via-aux-{filter,ignore,filepath}}
     ); }
 
@@ -51,8 +58,7 @@ let
 
     cat ${builtins.toFile "nixgitignore-ignores" ignores} > "$1/.gitignore"
     cat ${builtins.toFile "nixgitignore-ignores" ignoresAux} > "$1/aux.gitignore"
-
-    cp -r "$1" "$1" 2>&1 | grep -vq 'cannot copy a directory, .*into itself' || :
+    cat ${builtins.toFile "nixgitignore-ignores" ignoresRecursive} > "$1/6-recursive/.gitignore"
   '';
 
   ignores = ''
@@ -85,6 +91,18 @@ let
   '';
 
   ignoresAux = "/9-expected/*filepath\n";
+  ignoresRecursive = ''
+    *b*
+    /c
+
+    1-simpl/1
+    /1-simpl/2
+    /1-simpl/[35^$[]]
+    /1-simpl/][\]]
+    /1-simpl/[^a]b
+    /1-simpl/[\\]
+    simple*test
+  '';
 
   sourceUnfiltered = (runCommand "test-tree" {} ''
     mkdir -p $out; cd $out;
@@ -135,18 +153,16 @@ in with builtins; {
   inherit sourceUnfiltered sourceNix sourceGit;
   inherit testScript;
 
-  # BEFORE: rm -rf test-tree; cp --no-preserve=all -r "$(nix-build -E '(import ./test.nix {}).sourceUnfiltered')/test-tree" .
-  # nix eval --raw '(((import ./test.nix { source = ./test-tree; }).debug_compiled))' | jq -r .
-  debug_compiled = toJSON (compileRecursiveGitignore source);
-  # nix eval '(((import ./test.nix { source = ./test-tree; }).debug_patterns))' | jq -r . | jq .
-  debug_patterns = toJSON (gitignoreToPatterns (compileRecursiveGitignore source));
+  # pipe through jq (or jq -r) to see prettified output
+  debug_compiled = builtins.toJSON (compileRecursiveGitignore source);
+  debug_patterns = builtins.toJSON (gitignoreToPatterns (compileRecursiveGitignore source));
 
   success =
     let
       test = runCommand "nix-gitignore-test" {} ''
         mkdir -p $out; cd $out
         ${testScript}
-        test-main ${sourceGit} ${sourceNix} && touch $out/success
+        test-main ${sourceNix} ${sourceGit} && touch $out/success
       '';
     in
       assert sourceNix_all == sourceNix_pure;
